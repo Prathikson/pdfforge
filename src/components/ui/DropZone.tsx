@@ -20,23 +20,38 @@ export function DropZone({
   children,
   className = "",
 }: DropZoneProps) {
-  const [dragging, setDragging] = useState(false);
+  const [dragging, setDragging] = useState<boolean>(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFiles = (rawFiles: FileList | null) => {
     if (!rawFiles) return;
-    onFiles([...rawFiles]);
+
+    // ✅ FIX: no spread operator
+    const files = Array.from(rawFiles);
+    onFiles(files);
   };
 
   return (
     <div
-      onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setDragging(true);
+      }}
       onDragLeave={() => setDragging(false)}
-      onDrop={(e) => { e.preventDefault(); setDragging(false); onFiles([...e.dataTransfer.files]); }}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDragging(false);
+
+        // ✅ FIX here too
+        const files = Array.from(e.dataTransfer.files);
+        onFiles(files);
+      }}
       onClick={() => inputRef.current?.click()}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => e.key === "Enter" && inputRef.current?.click()}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") inputRef.current?.click();
+      }}
       className={[
         "relative cursor-pointer transition-all duration-200 select-none",
         "border-2 border-dashed rounded-2xl",
@@ -54,7 +69,10 @@ export function DropZone({
         accept={accept}
         multiple={multiple}
         className="hidden"
-        onChange={(e) => { handleFiles(e.target.files); e.target.value = ""; }}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+          handleFiles(e.target.files);
+          e.target.value = "";
+        }}
       />
 
       {children ? (
@@ -68,10 +86,22 @@ export function DropZone({
             <Icon name="plus" size={16} color="var(--accent)" />
           </div>
           <div>
-            <p className="text-sm font-semibold" style={{ color: "var(--text)", fontFamily: "var(--font-display)" }}>
+            <p
+              className="text-sm font-semibold"
+              style={{
+                color: "var(--text)",
+                fontFamily: "var(--font-display)",
+              }}
+            >
               {dragging ? "Drop files!" : "Add more files"}
             </p>
-            <p className="text-xs" style={{ color: "var(--text3)", fontFamily: "var(--font-mono)" }}>
+            <p
+              className="text-xs"
+              style={{
+                color: "var(--text3)",
+                fontFamily: "var(--font-mono)",
+              }}
+            >
               {accept.replace(/\./g, "").toUpperCase()}
             </p>
           </div>
@@ -81,8 +111,12 @@ export function DropZone({
           <div
             className="w-16 h-16 rounded-2xl flex items-center justify-center transition-transform duration-200"
             style={{
-              background: dragging ? "var(--accent-dim)" : "var(--surface2)",
-              transform: dragging ? "scale(1.1) rotate(-3deg)" : "scale(1)",
+              background: dragging
+                ? "var(--accent-dim)"
+                : "var(--surface2)",
+              transform: dragging
+                ? "scale(1.1) rotate(-3deg)"
+                : "scale(1)",
             }}
           >
             <Icon
@@ -94,7 +128,10 @@ export function DropZone({
           <div className="text-center">
             <p
               className="text-lg font-bold mb-1"
-              style={{ color: dragging ? "var(--accent)" : "var(--text)", fontFamily: "var(--font-display)" }}
+              style={{
+                color: dragging ? "var(--accent)" : "var(--text)",
+                fontFamily: "var(--font-display)",
+              }}
             >
               {dragging ? "Drop it here" : "Drop files here"}
             </p>
@@ -108,7 +145,6 @@ export function DropZone({
         </>
       )}
 
-      {/* Glow effect when dragging */}
       {dragging && (
         <div
           className="absolute inset-0 rounded-2xl pointer-events-none"
