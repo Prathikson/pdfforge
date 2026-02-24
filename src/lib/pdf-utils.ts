@@ -88,10 +88,21 @@ export async function renderAllThumbs(
 }
 
 /** Create a blob URL from pdf bytes and schedule cleanup */
-export function createPDFBlobURL(bytes: Uint8Array, ttl = 300_000): string {
-  const blob = new Blob([bytes], { type: "application/pdf" });
+export function createPDFBlobURL(
+  bytes: Uint8Array,
+  ttl = 300_000
+): string {
+  // ✅ Force a real ArrayBuffer by copying
+  const safeBytes = new Uint8Array(bytes);
+
+  const blob = new Blob([safeBytes], {
+    type: "application/pdf",
+  });
+
   const url = URL.createObjectURL(blob);
+
   setTimeout(() => URL.revokeObjectURL(url), ttl);
+
   return url;
 }
 
