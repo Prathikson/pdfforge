@@ -1,0 +1,171 @@
+export type ThemeMode = "dark" | "light";
+
+export interface ToolConfig {
+  id: string;
+  label: string;
+  shortLabel: string;
+  description: string;
+  icon: string;
+  color: string;
+  badge?: string;
+  emoji: string;
+}
+
+export const TOOLS: ToolConfig[] = [
+  {
+    id: "merge",
+    label: "Merge PDFs",
+    shortLabel: "Merge",
+    description: "Combine multiple PDFs into one",
+    icon: "merge",
+    color: "#7c6eff",
+    badge: "POPULAR",
+    emoji: "🔗",
+  },
+  {
+    id: "split",
+    label: "Split PDF",
+    shortLabel: "Split",
+    description: "Extract pages or split into parts",
+    icon: "split",
+    color: "#f59e0b",
+    badge: "",
+    emoji: "✂️",
+  },
+  {
+    id: "rotate",
+    label: "Rotate Pages",
+    shortLabel: "Rotate",
+    description: "Rotate individual or all pages",
+    icon: "rotate",
+    color: "#10b981",
+    badge: "",
+    emoji: "🔄",
+  },
+  {
+    id: "img2pdf",
+    label: "Images → PDF",
+    shortLabel: "IMG→PDF",
+    description: "Convert images to PDF document",
+    icon: "image",
+    color: "#f43f5e",
+    badge: "MULTI",
+    emoji: "🖼️",
+  },
+  {
+    id: "compress",
+    label: "Compress",
+    shortLabel: "Compress",
+    description: "Reduce PDF file size",
+    icon: "compress",
+    color: "#8b5cf6",
+    badge: "",
+    emoji: "🗜️",
+  },
+  {
+    id: "protect",
+    label: "Protect",
+    shortLabel: "Protect",
+    description: "Add password protection",
+    icon: "protect",
+    color: "#f43f5e",
+    badge: "",
+    emoji: "🔒",
+  },
+  {
+    id: "unlock",
+    label: "Unlock",
+    shortLabel: "Unlock",
+    description: "Remove PDF restrictions",
+    icon: "unlock",
+    color: "#06b6d4",
+    badge: "",
+    emoji: "🔓",
+  },
+  {
+    id: "watermark",
+    label: "Watermark",
+    shortLabel: "Watermark",
+    description: "Add text watermark to pages",
+    icon: "watermark",
+    color: "#f59e0b",
+    badge: "",
+    emoji: "💧",
+  },
+  {
+    id: "reorder",
+    label: "Reorder Pages",
+    shortLabel: "Reorder",
+    description: "Drag & drop page reordering",
+    icon: "reorder",
+    color: "#ec4899",
+    badge: "",
+    emoji: "📋",
+  },
+  {
+    id: "grayscale",
+    label: "Grayscale",
+    shortLabel: "Grayscale",
+    description: "Convert PDF to black & white",
+    icon: "grayscale",
+    color: "#6b7280",
+    badge: "",
+    emoji: "⬛",
+  },
+  {
+    id: "meta",
+    label: "Metadata",
+    shortLabel: "Metadata",
+    description: "Edit title, author, keywords",
+    icon: "meta",
+    color: "#06b6d4",
+    badge: "",
+    emoji: "📝",
+  },
+  {
+    id: "pdf2img",
+    label: "PDF → Images",
+    shortLabel: "PDF→IMG",
+    description: "Export pages as PNG or JPG",
+    icon: "pdf2img",
+    color: "#8b5cf6",
+    badge: "NEW",
+    emoji: "📸",
+  },
+];
+
+export const ICON_PATHS: Record<string, string> = {
+  merge: "M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8M15 3h6v6M10 14l11-11",
+  split: "M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l5.1 5.1M4 4l5 5",
+  rotate: "M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38",
+  image: "M21 15.5v5h-18v-5M21 7.5H3M8 3.5v8M16 3.5v8M3 10.5l5-5 4 4 5-7 6 8",
+  compress: "M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7M17 7l4-4M7 17L3 21",
+  protect: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z",
+  unlock: "M8 11V7a4 4 0 0 1 8 0m-4 8v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2z",
+  watermark: "M12 22V12M12 12l-4-4m4 4l4-4M2 22h20M6 18h12",
+  reorder: "M3 6h18M3 12h18M3 18h18",
+  grayscale: "M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2zm0 0v20",
+  meta: "M4 6h16M4 12h16M4 18h7",
+  pdf2img: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM14 2v6h6M16 17H8m8-4H8m2-4H8",
+  check: "M20 6L9 17l-5-5",
+  x: "M18 6L6 18M6 6l12 12",
+  down: "M12 5v14M5 12l7 7 7-7",
+  trash: "M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6",
+  drag: "M9 5h2M9 12h2M9 19h2M13 5h2M13 12h2M13 19h2",
+  plus: "M12 5v14M5 12h14",
+  sun: "M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42M12 6a6 6 0 1 0 0 12A6 6 0 0 0 12 6z",
+  moon: "M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z",
+  zap: "M13 2L3 14h9l-1 8 10-12h-9l1-8z",
+  shield: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z",
+  coffee: "M18 8h1a4 4 0 0 1 0 8h-1M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8zM6 1v3M10 1v3M14 1v3",
+  eye: "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8zM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z",
+  upload: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12",
+  layers: "M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5",
+  settings: "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z",
+  arrow_left: "M19 12H5M12 19l-7-7 7-7",
+};
+
+export const TOOL_PALETTE = [
+  "#7c6eff", "#f43f5e", "#10b981", "#f59e0b",
+  "#8b5cf6", "#06b6d4", "#ec4899", "#3b82f6",
+];
