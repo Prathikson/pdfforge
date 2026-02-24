@@ -34,7 +34,7 @@ export function Features() {
     >
       <div
         className="grid gap-3"
-        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))" }}
+        style={{ gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))" }}
       >
         {items.map((f) => (
           <div
@@ -43,19 +43,19 @@ export function Features() {
             style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
           >
             <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center mb-4"
+              className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"
               style={{ background: `${f.color}18` }}
             >
               <Icon name={f.icon} size={17} color={f.color} />
             </div>
             <h3
-              className="text-sm font-bold mb-2"
+              className="text-lg font-medium mb-2"
               style={{ color: "var(--text)", fontFamily: "var(--font-display)" }}
             >
               {f.title}
             </h3>
             <p
-              className="text-xs leading-relaxed"
+              className="text-md leading-relaxed"
               style={{ color: "var(--text3)", fontFamily: "var(--font-display)", lineHeight: 1.65 }}
             >
               {f.desc}
@@ -69,7 +69,7 @@ export function Features() {
 
 export function SupportSection({ toast }: { toast: (msg: string, type?: any) => void }) {
   return (
-    <section id="support" className="py-10 px-5 pb-20" style={{ maxWidth: 900, margin: "0 auto" }}>
+    <section id="support" className="py-10 px-5 pb-20" style={{ maxWidth: 1200, margin: "0 auto" }}>
       <div
         className="relative rounded-3xl border p-12 text-center overflow-hidden"
         style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
@@ -87,7 +87,7 @@ export function SupportSection({ toast }: { toast: (msg: string, type?: any) => 
           <h2
             className="mb-4 leading-tight"
             style={{
-              fontSize: "clamp(1.5rem, 3vw, 2.2rem)",
+              fontSize: "clamp(1.8rem, 3vw, 2.2rem)",
               fontWeight: 800,
               color: "var(--text)",
               fontFamily: "var(--font-display)",
@@ -125,7 +125,7 @@ export function SupportSection({ toast }: { toast: (msg: string, type?: any) => 
                   toast(`Thank you for your $${d.a} support! 🙏`, "success");
                   window.open("https://buymeacoffee.com", "_blank");
                 }}
-                className="px-5 py-2.5 rounded-xl border text-sm font-bold transition-all duration-150 hover:-translate-y-0.5"
+                className="px-5 py-2.5 rounded-xl border text-md font-bold transition-all duration-150 hover:-translate-y-0.5"
                 style={{
                   background: "var(--surface2)",
                   border: "1px solid var(--border2)",
@@ -142,7 +142,7 @@ export function SupportSection({ toast }: { toast: (msg: string, type?: any) => 
           <a
             href="https://buymeacoffee.com"
             target="_blank"
-            className="inline-flex items-center gap-2.5 px-8 py-3.5 rounded-2xl text-white text-sm font-bold no-underline transition-all duration-200 hover:-translate-y-0.5"
+            className="inline-flex items-center gap-2.5 px-8 py-3.5 rounded-2xl text-white text-md font-bold no-underline transition-all duration-200 hover:-translate-y-0.5"
             style={{
               background: "linear-gradient(135deg, #f43f5e, #c0392b)",
               boxShadow: "0 4px 20px rgba(244,63,94,0.35)",
@@ -154,7 +154,7 @@ export function SupportSection({ toast }: { toast: (msg: string, type?: any) => 
           </a>
 
           <p
-            className="mt-5 text-xs"
+            className="mt-5 text-sm"
             style={{ color: "var(--text3)", fontFamily: "var(--font-mono)" }}
           >
             100% goes to dev & hosting · No BS · Thank you 🙏

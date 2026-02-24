@@ -212,13 +212,19 @@ export function MergeTool({ toast }: { toast: (msg: string, type?: any) => void 
                       <Icon name="plus" size={16} color="var(--text3)" />
                       <span style={{ fontSize: 7, fontFamily: "var(--font-mono)" }}>ADD</span>
                     </div>
-                    <input
-                      type="file"
-                      accept=".pdf"
-                      multiple
-                      className="hidden"
-                      onChange={(e) => { if (e.target.files) addFiles([...e.target.files]); e.target.value = ""; }}
-                    />
+<input
+  type="file"
+  accept=".pdf"
+  multiple
+  className="hidden"
+  onChange={(e) => {
+    const files = e.target.files;
+    if (files) {
+      addFiles(Array.from(files));
+    }
+    e.target.value = "";
+  }}
+/>
                   </label>
                 </div>
               </Panel>

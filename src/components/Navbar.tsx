@@ -32,13 +32,13 @@ export function Navbar() {
       {/* Right */}
       <div className="flex items-center gap-4">
         <nav className="hidden sm:flex items-center gap-5">
-          <a href="#tools" className="text-xs font-semibold transition-opacity hover:opacity-60" style={{ color: "var(--text2)", fontFamily: "var(--font-display)" }}>
+          <a href="#tools" className="text-md font-medium transition-opacity hover:opacity-60" style={{ color: "var(--text2)", fontFamily: "var(--font-display)" }}>
             Tools
           </a>
-          <a href="#privacy" className="text-xs font-semibold transition-opacity hover:opacity-60" style={{ color: "var(--text2)", fontFamily: "var(--font-display)" }}>
+          <a href="#privacy" className="text-md font-medium transition-opacity hover:opacity-60" style={{ color: "var(--text2)", fontFamily: "var(--font-display)" }}>
             Privacy
           </a>
-          <a href="#support" className="text-xs font-semibold transition-opacity hover:opacity-60" style={{ color: "var(--text2)", fontFamily: "var(--font-display)" }}>
+          <a href="#support" className="text-md font-medium transition-opacity hover:opacity-60" style={{ color: "var(--text2)", fontFamily: "var(--font-display)" }}>
             Support ☕
           </a>
         </nav>
@@ -47,7 +47,7 @@ export function Navbar() {
         <button
           onClick={toggle}
           aria-label="Toggle theme"
-          className="w-9 h-5 rounded-full relative transition-all duration-300 flex-shrink-0 border"
+          className="w-12 h-6 rounded-full relative transition-all duration-300 flex-shrink-0 border"
           style={{
             background: mode === "dark" ? "var(--accent)" : "var(--surface3)",
             borderColor: "var(--border2)",

@@ -106,7 +106,7 @@ export function Hero() {
         <div className="flex gap-3 justify-center flex-wrap">
           <a
             href="#tools"
-            className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-2xl text-white font-bold text-sm no-underline transition-all duration-200 hover:-translate-y-0.5"
+            className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-2xl text-white font-medium text-lg no-underline transition-all duration-200 hover:-translate-y-0.5"
             style={{
               background: "var(--accent)",
               boxShadow: "0 4px 20px var(--accent-glow)",
@@ -117,7 +117,7 @@ export function Hero() {
           </a>
           <a
             href="#support"
-            className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-2xl font-bold text-sm no-underline border transition-all duration-200 hover:-translate-y-0.5"
+            className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-2xl font-medium text-lg no-underline border transition-all duration-200 hover:-translate-y-0.5"
             style={{
               background: "var(--surface)",
               color: "var(--text)",
@@ -148,14 +148,14 @@ export function Hero() {
             style={{ borderRight: i < 3 ? "1px solid var(--border)" : "none" }}
           >
             <div
-              className="text-2xl font-black gradient-text mb-1"
+              className="text-3xl font-black gradient-text mb-1"
               style={{ fontFamily: "var(--font-display)" }}
             >
               {st.n}
               {st.s}
             </div>
             <div
-              className="text-xs"
+              className="text-md"
               style={{ color: "var(--text3)", fontFamily: "var(--font-mono)", letterSpacing: "0.1em" }}
             >
               {st.l}
