@@ -249,19 +249,50 @@ export function ImageToPDFTool({ toast }: { toast: (msg: string, type?: any) => 
 ═══════════════════════════════════════════════════════════════════════════ */
 const COMPRESS_COLOR = "#8b5cf6";
 
-async function recompressJpeg(jpegBytes: Uint8Array, quality: number): Promise<Uint8Array | null> {
+async function recompressJpeg(
+  jpegBytes: Uint8Array,
+  quality: number
+): Promise<Uint8Array | null> {
   try {
-    const bmp = await createImageBitmap(new Blob([jpegBytes.buffer.slice(jpegBytes.byteOffset, jpegBytes.byteOffset + jpegBytes.byteLength)], { type: "image/jpeg" }));
-    if (bmp.width < 8 || bmp.height < 8) { bmp.close(); return null; }
+    // ✅ Force a guaranteed ArrayBuffer-backed Uint8Array
+    const safeBytes = new Uint8Array(jpegBytes);
+
+    const bmp = await createImageBitmap(
+      new Blob([safeBytes], { type: "image/jpeg" })
+    );
+
+    if (bmp.width < 8 || bmp.height < 8) {
+      bmp.close();
+      return null;
+    }
+
     const canvas = document.createElement("canvas");
-    canvas.width = bmp.width; canvas.height = bmp.height;
+    canvas.width = bmp.width;
+    canvas.height = bmp.height;
+
     const ctx = canvas.getContext("2d")!;
-    ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, bmp.width, bmp.height); ctx.drawImage(bmp, 0, 0); bmp.close();
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, bmp.width, bmp.height);
+    ctx.drawImage(bmp, 0, 0);
+    bmp.close();
+
     const out: Uint8Array = await new Promise((res, rej) =>
-      canvas.toBlob((b) => b ? b.arrayBuffer().then((ab) => res(new Uint8Array(ab))) : rej(new Error("fail")), "image/jpeg", quality));
+      canvas.toBlob(
+        (b) =>
+          b
+            ? b.arrayBuffer().then((ab) => res(new Uint8Array(ab)))
+            : rej(new Error("fail")),
+        "image/jpeg",
+        quality
+      )
+    );
+
     canvas.width = 0;
+
     return out.length < jpegBytes.length ? out : null;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 async function inflateRaw(data: Uint8Array): Promise<Uint8Array | null> {

@@ -3,7 +3,7 @@ import "@/styles/globals.css";
 
 const SITE_URL = "https://pdfnope.xtoicstudio.com";
 const SITE_NAME = "PDFnope";
-const TITLE = "PDFnopr — Free Online PDF Tools | Merge, Split, Compress & More";
+const TITLE = "PDFnope — Free Online PDF Tools | Merge, Split, Compress & More";
 const DESCRIPTION =
   "Free online PDF tools — no login, no uploads, no limits. Merge PDFs, split pages, compress files, rotate, watermark, protect, convert images to PDF and more. 100% private, runs in your browser.";
 
