@@ -251,7 +251,7 @@ const COMPRESS_COLOR = "#8b5cf6";
 
 async function recompressJpeg(jpegBytes: Uint8Array, quality: number): Promise<Uint8Array | null> {
   try {
-    const bmp = await createImageBitmap(new Blob([jpegBytes], { type: "image/jpeg" }));
+    const bmp = await createImageBitmap(new Blob([jpegBytes.buffer.slice(jpegBytes.byteOffset, jpegBytes.byteOffset + jpegBytes.byteLength)], { type: "image/jpeg" }));
     if (bmp.width < 8 || bmp.height < 8) { bmp.close(); return null; }
     const canvas = document.createElement("canvas");
     canvas.width = bmp.width; canvas.height = bmp.height;
@@ -398,7 +398,7 @@ export function CompressTool({ toast }: { toast: (msg: string, type?: any) => vo
     setBusy(true); setProg(2); setResult(null);
     try {
       const { bytes, imagesFound, imagesCompressed } = await runCompress(file, level, setProg);
-      const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+      const url = URL.createObjectURL(new Blob([bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)], { type: "application/pdf" }));
       setTimeout(() => URL.revokeObjectURL(url), 5 * 60 * 1000);
       setResult({ bytes, url, name: `compressed_${file.name}`, original: file.size, imagesFound, imagesCompressed });
       const pct = (((file.size - bytes.length) / file.size) * 100).toFixed(1);
