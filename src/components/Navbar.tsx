@@ -19,7 +19,7 @@ export function Navbar() {
       <div className="flex items-center gap-2.5">
         <span className="text-lg font-black tracking-tight" style={{ fontFamily: "var(--font-display)", letterSpacing: "-0.04em" }}>
           <span className="gradient-text">PDF</span>
-          <span style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontWeight: 300, color: "var(--text2)" }}>forge</span>
+          <span style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontWeight: 300, color: "var(--text2)" }}>nope</span>
         </span>
         <span
           className="text-white text-xs font-bold px-2 py-0.5 rounded-md"

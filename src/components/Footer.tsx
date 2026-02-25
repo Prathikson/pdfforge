@@ -94,7 +94,7 @@ export function SupportSection({ toast }: { toast: (msg: string, type?: any) => 
               letterSpacing: "-0.03em",
             }}
           >
-            PDFforge is free.{" "}
+            PDFnope is free.{" "}
             <span style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontWeight: 300 }}>
               Keep it that way.
             </span>

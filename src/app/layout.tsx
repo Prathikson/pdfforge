@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import "@/styles/globals.css";
 
-const SITE_URL = "https://pdfforge.app";
-const SITE_NAME = "PDFforge";
-const TITLE = "PDFforge — Free Online PDF Tools | Merge, Split, Compress & More";
+const SITE_URL = "https://pdfnope.xtoicstudio.com";
+const SITE_NAME = "PDFnope";
+const TITLE = "PDFnopr — Free Online PDF Tools | Merge, Split, Compress & More";
 const DESCRIPTION =
   "Free online PDF tools — no login, no uploads, no limits. Merge PDFs, split pages, compress files, rotate, watermark, protect, convert images to PDF and more. 100% private, runs in your browser.";
 
@@ -121,7 +121,7 @@ export const metadata: Metadata = {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "PDFforge — Free Online PDF Tools",
+        alt: "PDFnope — Free Online PDF Tools",
       },
     ],
   },
@@ -132,8 +132,8 @@ export const metadata: Metadata = {
     title: TITLE,
     description: DESCRIPTION,
     images: ["/og-image.png"],
-    creator: "@pdfforge",
-    site: "@pdfforge",
+    creator: "@pdfnope",
+    site: "@pdfnope",
   },
 
   // ── App / PWA ────────────────────────────────────────────────────────────
@@ -241,10 +241,10 @@ const jsonLd = {
       mainEntity: [
         {
           "@type": "Question",
-          name: "Is PDFforge completely free?",
+          name: "Is PDFnope completely free?",
           acceptedAnswer: {
             "@type": "Answer",
-            text: "Yes. PDFforge is 100% free with no login, no subscription, and no hidden fees.",
+            text: "Yes. PDFnope is 100% free with no login, no subscription, and no hidden fees.",
           },
         },
         {
@@ -276,7 +276,7 @@ const jsonLd = {
           name: "How do I compress a PDF to reduce its file size?",
           acceptedAnswer: {
             "@type": "Answer",
-            text: "Open the Compress tool, upload your PDF, and click Compress. PDFforge optimizes the file structure to reduce size.",
+            text: "Open the Compress tool, upload your PDF, and click Compress. PDFnope optimizes the file structure to reduce size.",
           },
         },
         {
@@ -284,7 +284,7 @@ const jsonLd = {
           name: "What file formats can I convert to PDF?",
           acceptedAnswer: {
             "@type": "Answer",
-            text: "PDFforge supports JPG, PNG, WEBP, GIF, and BMP image formats. Use the Images → PDF tool to combine multiple images into a single PDF.",
+            text: "PDFnope supports JPG, PNG, WEBP, GIF, and BMP image formats. Use the Images → PDF tool to combine multiple images into a single PDF.",
           },
         },
       ],
@@ -324,7 +324,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dangerouslySetInnerHTML={{
             __html: `
               try {
-                var stored = localStorage.getItem('pdfforge-theme');
+                var stored = localStorage.getItem('pdfnope-theme');
                 var preferred = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
                 var theme = stored || preferred;
                 document.documentElement.classList.toggle('dark', theme === 'dark');

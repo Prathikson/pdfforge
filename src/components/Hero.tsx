@@ -2,7 +2,7 @@
 
 export function Hero() {
   return (
-    <section
+    <div
       className="relative min-h-screen flex flex-col items-center justify-center text-center px-6 pb-20 overflow-hidden"
       style={{ paddingTop: "5rem" }}
     >
@@ -103,7 +103,7 @@ export function Hero() {
         </p>
 
         {/* CTAs */}
-        <div className="flex gap-3 justify-center flex-wrap">
+        <div className="flex gap-3 justify-center flex-wrap p-6 mb-4">
           <a
             href="#tools"
             className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-2xl text-white font-medium text-lg no-underline transition-all duration-200 hover:-translate-y-0.5"
@@ -163,6 +163,6 @@ export function Hero() {
           </div>
         ))}
       </div>
-    </section>
+    </div>
   );
 }

@@ -38,7 +38,7 @@ export default function Home() {
                 color: "var(--text2)",
               }}
             >
-              forge
+              nope
             </span>
           </div>
           <div className="flex gap-2">
