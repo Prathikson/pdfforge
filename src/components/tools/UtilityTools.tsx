@@ -241,174 +241,287 @@ export function ImageToPDFTool({ toast }: { toast: (msg: string, type?: any) => 
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   COMPRESS
-   • Byte-level scan for embedded JPEG/DCT/Flate image XObjects
-   • Re-encodes found images at chosen quality, only uses result if smaller
-   • Re-saves through pdf-lib to fix /Length + object streams + strip metadata
-   • Output is ALWAYS ≤ original — guaranteed
+   COMPRESS  — aggressive multi-strategy engine
+   ─────────────────────────────────────────────────────────────────────────
+   Strategy A  (structure): strip all metadata/XMP/comments, rebuild cross-
+               reference table with object streams → always runs, free savings
+   Strategy B  (images): scan raw PDF bytes for every embedded image XObject
+               (JPEG/DCT, Flate-compressed raw pixels, JPEG2000/JPX).
+               Each image is decoded → downscaled if oversized → re-encoded
+               at target quality.  Only the result that is actually smaller
+               gets patched back.
+   Strategy C  (page rasterise fallback): for "Maximum" level, pages that
+               still have no image savings (pure-vector/text) are rendered
+               via PDF.js at 120 DPI and stored as JPEG.  This mirrors what
+               ilovepdf does and is why they can compress already-compressed
+               files — they are rasterising the whole page.
+   Result is always the smallest of (original, A, A+B, A+B+C).
 ═══════════════════════════════════════════════════════════════════════════ */
 const COMPRESS_COLOR = "#8b5cf6";
 
-async function recompressJpeg(
-  jpegBytes: Uint8Array,
-  quality: number
+/** Copy a Uint8Array into a guaranteed plain ArrayBuffer (never SharedArrayBuffer) */
+function u8ToArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  const ab = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(ab).set(bytes);
+  return ab;
+}
+
+function toBlob(bytes: Uint8Array, type = "application/pdf"): Blob {
+  return new Blob([u8ToArrayBuffer(bytes)], { type });
+}
+
+async function bitmapToJpeg(bmp: ImageBitmap, quality: number, w?: number, h?: number): Promise<Uint8Array> {
+  const canvas = document.createElement("canvas");
+  canvas.width  = w ?? bmp.width;
+  canvas.height = h ?? bmp.height;
+  const ctx = canvas.getContext("2d")!;
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+  bmp.close();
+  return new Promise((res, rej) =>
+    canvas.toBlob(
+      (b) => b ? b.arrayBuffer().then((ab) => { canvas.width = 0; res(new Uint8Array(ab)); }) : rej(),
+      "image/jpeg", quality,
+    )
+  );
+}
+
+async function recompressImageBytes(
+  raw: Uint8Array, mimeHint: string, quality: number, maxDim: number,
 ): Promise<Uint8Array | null> {
   try {
-    // ✅ Force a guaranteed ArrayBuffer-backed Uint8Array
-    const safeBytes = new Uint8Array(jpegBytes);
-
-    const bmp = await createImageBitmap(
-      new Blob([safeBytes], { type: "image/jpeg" })
-    );
-
-    if (bmp.width < 8 || bmp.height < 8) {
-      bmp.close();
-      return null;
+    const bmp = await createImageBitmap(toBlob(raw, mimeHint));
+    if (bmp.width < 8 || bmp.height < 8) { bmp.close(); return null; }
+    // Downscale if image is huge — beyond maxDim is invisible resolution
+    let w = bmp.width, h = bmp.height;
+    if (Math.max(w, h) > maxDim) {
+      const ratio = maxDim / Math.max(w, h);
+      w = Math.round(w * ratio); h = Math.round(h * ratio);
     }
-
-    const canvas = document.createElement("canvas");
-    canvas.width = bmp.width;
-    canvas.height = bmp.height;
-
-    const ctx = canvas.getContext("2d")!;
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, bmp.width, bmp.height);
-    ctx.drawImage(bmp, 0, 0);
-    bmp.close();
-
-    const out: Uint8Array = await new Promise((res, rej) =>
-      canvas.toBlob(
-        (b) =>
-          b
-            ? b.arrayBuffer().then((ab) => res(new Uint8Array(ab)))
-            : rej(new Error("fail")),
-        "image/jpeg",
-        quality
-      )
-    );
-
-    canvas.width = 0;
-
-    return out.length < jpegBytes.length ? out : null;
-  } catch {
-    return null;
-  }
+    const out = await bitmapToJpeg(bmp, quality, w, h);
+    return out.length < raw.length ? out : null;
+  } catch { return null; }
 }
 
 async function inflateRaw(data: Uint8Array): Promise<Uint8Array | null> {
   try {
-    const ds = new DecompressionStream("deflate-raw");
-    const writer = ds.writable.getWriter(); const reader = ds.readable.getReader();
-    writer.write(data.slice()); writer.close();
-    const chunks: Uint8Array[] = [];
-    for (;;) { const { done, value } = await reader.read(); if (done) break; chunks.push(value); }
-    const total = chunks.reduce((s, c) => s + c.length, 0);
-    const out = new Uint8Array(total); let off = 0;
-    for (const c of chunks) { out.set(c, off); off += c.length; }
-    return out;
+    // Quick sanity check — valid deflate streams start with specific byte patterns.
+    // zlib-wrapped deflate (most common in PDFs) starts with 0x78 followed by
+    // 0x01, 0x9C, 0xDA, or 0x5E. Raw deflate has no header.
+    // If neither matches, skip to avoid the "invalid stored block lengths" crash.
+    const b0 = data[0], b1 = data[1];
+    const isZlib = b0 === 0x78 && (b1 === 0x01 || b1 === 0x9c || b1 === 0xda || b1 === 0x5e);
+    // Try zlib first (deflate with header), then raw deflate
+    const modes: CompressionFormat[] = isZlib ? ["deflate", "deflate-raw"] : ["deflate-raw", "deflate"];
+
+    for (const mode of modes) {
+      try {
+        const ds = new DecompressionStream(mode);
+        const w = ds.writable.getWriter();
+        const r = ds.readable.getReader();
+        w.write(data.slice()); w.close();
+        const chunks: Uint8Array[] = [];
+        for (;;) { const { done, value } = await r.read(); if (done) break; chunks.push(value); }
+        const total = chunks.reduce((s, c) => s + c.length, 0);
+        const out = new Uint8Array(total);
+        let off = 0; for (const c of chunks) { out.set(c, off); off += c.length; }
+        return out; // success — return immediately
+      } catch {
+        // this mode failed, try the next
+      }
+    }
+    return null; // both modes failed
   } catch { return null; }
 }
 
+function findAll(hay: Uint8Array, needle: number[]): number[] {
+  const out: number[] = [];
+  outer: for (let i = 0; i <= hay.length - needle.length; i++) {
+    for (let j = 0; j < needle.length; j++) if (hay[i + j] !== needle[j]) continue outer;
+    out.push(i);
+  }
+  return out;
+}
+
 const COMPRESS_LEVELS = {
-  low:    { label: "Maximum",  emoji: "🔥", desc: "Smallest file · noticeable quality drop", q: 0.38, hint: "Archiving / sharing" },
-  medium: { label: "Balanced", emoji: "⚡", desc: "Best size-to-quality ratio",               q: 0.60, hint: "Recommended"         },
-  high:   { label: "Gentle",   emoji: "✨", desc: "Subtle reduction · nearly lossless",       q: 0.82, hint: "Print-ready PDFs"    },
+  low:    { label: "Maximum",  emoji: "🔥", desc: "Rasterises every page at 120 DPI", q: 0.42, maxDim: 1600, rasterise: true,  scale: 1.25, hint: "Matches ilovepdf aggressive mode" },
+  medium: { label: "Balanced", emoji: "⚡", desc: "Recompresses images at 65% quality", q: 0.65, maxDim: 2400, rasterise: false, scale: 0,    hint: "Best size-to-quality ratio"       },
+  high:   { label: "Gentle",   emoji: "✨", desc: "Light pass · keeps full quality",   q: 0.85, maxDim: 4000, rasterise: false, scale: 0,    hint: "Nearly lossless"                   },
 } as const;
 type CompressLevel = keyof typeof COMPRESS_LEVELS;
 
 async function runCompress(file: File, level: CompressLevel, onProg: (n: number) => void) {
-  const quality = COMPRESS_LEVELS[level].q;
+  const cfg = COMPRESS_LEVELS[level];
   const src = new Uint8Array(await file.arrayBuffer());
   const dec = new TextDecoder("latin1");
 
-  function findAll(hay: Uint8Array, needle: number[]): number[] {
-    const out: number[] = [];
-    outer: for (let i = 0; i <= hay.length - needle.length; i++) {
-      for (let j = 0; j < needle.length; j++) if (hay[i+j] !== needle[j]) continue outer;
-      out.push(i);
-    }
-    return out;
-  }
-
-  const SS  = [0x73,0x74,0x72,0x65,0x61,0x6d];
-  const ES  = [0x65,0x6e,0x64,0x73,0x74,0x72,0x65,0x61,0x6d];
-  const starts = findAll(src, SS);
-  const ends   = findAll(src, ES);
-
+  // ── Strategy A: pdf-lib structural cleanup ─────────────────────────────
+  onProg(5);
+  let structBytes: Uint8Array = src;
   let imagesFound = 0, imagesCompressed = 0;
+
+  try {
+    const { PDFDocument } = await getPDFLib();
+    const doc = await PDFDocument.load(src, { ignoreEncryption: true } as any);
+    doc.setTitle(""); doc.setAuthor(""); doc.setSubject(""); doc.setKeywords([]);
+    doc.setCreator("PDFforge"); doc.setProducer("PDFforge");
+    const saved = await doc.save({ useObjectStreams: true });
+    if (saved.length < src.length) structBytes = saved;
+  } catch { /* keep original */ }
+
+  onProg(15);
+
+  // ── Strategy B: embedded image recompression ───────────────────────────
+  const working = structBytes;
+  const SS = [0x73,0x74,0x72,0x65,0x61,0x6d];
+  const ES = [0x65,0x6e,0x64,0x73,0x74,0x72,0x65,0x61,0x6d];
+  const starts = findAll(working, SS);
+  const ends   = findAll(working, ES);
   const patches: { start: number; end: number; bytes: Uint8Array }[] = [];
   let ec = 0;
 
   for (let si = 0; si < starts.length; si++) {
-    onProg(Math.round(5 + (si / Math.max(starts.length,1)) * 70));
+    try {
+      onProg(Math.round(15 + (si / Math.max(starts.length, 1)) * 55));
     const ss = starts[si];
     let ds = ss + 6;
-    if (src[ds] === 0x0d) ds++; if (src[ds] === 0x0a) ds++;
+    if (working[ds] === 0x0d) ds++; if (working[ds] === 0x0a) ds++;
     while (ec < ends.length && ends[ec] <= ds) ec++;
     if (ec >= ends.length) break;
     const de = ends[ec];
 
-    const hdr = dec.decode(src.slice(Math.max(0, ss - 400), ss)).toUpperCase();
+    // Parse 500 bytes of dict before the "stream" keyword
+    const hdr = dec.decode(working.slice(Math.max(0, ss - 500), ss)).toUpperCase();
     const isImg = hdr.includes("SUBTYPE/IMAGE") || hdr.includes("SUBTYPE /IMAGE") ||
-                  (hdr.includes("/WIDTH") && hdr.includes("/HEIGHT") && hdr.includes("/COLORSPACE"));
+                  (hdr.includes("/WIDTH") && hdr.includes("/HEIGHT") &&
+                   (hdr.includes("/COLORSPACE") || hdr.includes("/BITSPERCOMPONENT")));
     if (!isImg) continue;
 
     const isDCT   = hdr.includes("DCTDECODE") || hdr.includes("/DCT ");
+    const isJPX   = hdr.includes("JPXDECODE");
     const isFlate = hdr.includes("FLATEDECODE") || hdr.includes("/FLATE ");
+    const isCCITT = hdr.includes("CCITTFAX") || hdr.includes("CCITT ");
 
-    let end = de;
-    while (end > ds && (src[end-1]===0x0a||src[end-1]===0x0d||src[end-1]===0x20)) end--;
-    const sd = src.slice(ds, end);
-    if (sd.length < 256) continue;
+    let streamEnd = de;
+    while (streamEnd > ds && (working[streamEnd-1]===0x0a||working[streamEnd-1]===0x0d||working[streamEnd-1]===0x20)) streamEnd--;
+    const sd = working.slice(ds, streamEnd);
+    if (sd.length < 128) continue;
 
     imagesFound++;
-    let jpegBytes: Uint8Array | null = null;
 
-    if (isDCT) {
-      jpegBytes = (sd[0]===0xff && sd[1]===0xd8) ? sd : sd; // trust the filter
+    let imgBytes: Uint8Array | null = null;
+    let mimeHint = "image/jpeg";
+
+    if (isDCT || isJPX) {
+      imgBytes = sd;
+      mimeHint = "image/jpeg";
     } else if (isFlate) {
       const inflated = await inflateRaw(sd);
-      if (inflated && inflated[0]===0xff && inflated[1]===0xd8) jpegBytes = inflated;
-    }
+      if (!inflated) continue;
+      // Check if inflated data is itself JPEG
+      if (inflated[0]===0xff && inflated[1]===0xd8) { imgBytes = inflated; mimeHint = "image/jpeg"; }
+      else {
+        // Raw pixel data — try decoding via canvas by guessing a PNG
+        // Extract /Width and /Height from header dict for raw pixel construction
+        const wMatch = hdr.match(/\/WIDTH\s+(\d+)/);
+        const hMatch = hdr.match(/\/HEIGHT\s+(\d+)/);
+        if (!wMatch || !hMatch) continue;
+        const pw = parseInt(wMatch[1]), ph = parseInt(hMatch[1]);
+        if (pw < 4 || ph < 4 || inflated.length < pw * ph) continue;
+        imgBytes = inflated;
+        mimeHint = "image/png"; // canvas will try to interpret raw pixels
+      }
+    } else if (isCCITT) {
+      // CCITT fax encoded (B&W scans) — skip, can't easily decode in browser
+      continue;
+    } else continue;
 
-    if (!jpegBytes) continue;
-    const recomp = await recompressJpeg(jpegBytes, quality);
+    if (!imgBytes) continue;
+    const recomp = await recompressImageBytes(imgBytes, mimeHint, cfg.q, cfg.maxDim);
     if (!recomp) continue;
     imagesCompressed++;
     patches.push({ start: ds, end: de, bytes: recomp });
+    } catch { /* skip this stream — corrupted or unsupported encoding */ }
   }
 
-  onProg(78);
+  onProg(72);
 
-  let working = src;
+  // Apply patches
+  let imageResult = working;
   if (patches.length > 0) {
     patches.sort((a, b) => b.start - a.start);
     const parts: Uint8Array[] = [];
-    let cursor = src.length;
-    for (const p of patches) { parts.unshift(src.slice(p.end, cursor)); parts.unshift(p.bytes); cursor = p.start; }
-    parts.unshift(src.slice(0, cursor));
-    const totalLen = parts.reduce((s, p) => s + p.length, 0);
-    working = new Uint8Array(totalLen);
-    let off = 0; for (const p of parts) { working.set(p, off); off += p.length; }
+    let cursor = working.length;
+    for (const p of patches) { parts.unshift(working.slice(p.end, cursor)); parts.unshift(p.bytes); cursor = p.start; }
+    parts.unshift(working.slice(0, cursor));
+    const totalLen = parts.reduce((s, x) => s + x.length, 0);
+    imageResult = new Uint8Array(totalLen);
+    let off = 0; for (const x of parts) { imageResult.set(x, off); off += x.length; }
+
+    // Re-save through pdf-lib again to fix /Length entries after patching
+    try {
+      const { PDFDocument } = await getPDFLib();
+      const doc2 = await PDFDocument.load(imageResult, { ignoreEncryption: true } as any);
+      doc2.setCreator("PDFforge"); doc2.setProducer("PDFforge");
+      const fixed = await doc2.save({ useObjectStreams: true });
+      if (fixed.length < imageResult.length) imageResult = fixed;
+    } catch { /* keep patched version */ }
   }
 
-  onProg(86);
+  onProg(82);
 
-  try {
-    const { PDFDocument } = await getPDFLib();
-    const doc = await PDFDocument.load(working, { ignoreEncryption: true } as any);
-    doc.setTitle(""); doc.setAuthor(""); doc.setSubject(""); doc.setKeywords([]);
-    doc.setCreator("PDFforge"); doc.setProducer("PDFforge");
-    const saved = await doc.save({ useObjectStreams: true });
-    onProg(100);
-    return { bytes: saved.length <= src.length ? saved : src, imagesFound, imagesCompressed };
-  } catch {
-    onProg(100);
-    return { bytes: working.length <= src.length ? working : src, imagesFound, imagesCompressed };
+  // ── Strategy C: full page rasterisation (Maximum mode only) ───────────
+  // This is what services like ilovepdf do — render every page at low DPI
+  // as JPEG and rebuild the PDF. Works on any PDF regardless of content.
+  let rasterResult: Uint8Array | null = null;
+  if (cfg.rasterise) {
+    try {
+      const { getPDFJS } = await import("@/lib/pdf-utils");
+      const pdfjs = await getPDFJS();
+      const pdfjsDoc = await pdfjs.getDocument({ data: src.slice(0).buffer }).promise;
+      const { PDFDocument } = await getPDFLib();
+      const newDoc = await PDFDocument.create();
+      const numPages = pdfjsDoc.numPages;
+
+      for (let i = 1; i <= numPages; i++) {
+        onProg(82 + Math.round(((i - 1) / numPages) * 14));
+        const page = await pdfjsDoc.getPage(i);
+        const vp = page.getViewport({ scale: cfg.scale });
+        const canvas = document.createElement("canvas");
+        canvas.width  = Math.round(vp.width);
+        canvas.height = Math.round(vp.height);
+        const ctx = canvas.getContext("2d")!;
+        ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        await page.render({ canvasContext: ctx, viewport: vp }).promise;
+
+        const jpegBytes: Uint8Array = await new Promise((res) =>
+          canvas.toBlob((b) => b!.arrayBuffer().then((ab) => res(new Uint8Array(ab))), "image/jpeg", cfg.q));
+        canvas.width = 0;
+
+        const embedded = await newDoc.embedJpg(jpegBytes);
+        const p2 = newDoc.addPage([canvas.width || vp.width, canvas.height || vp.height]);
+        p2.drawImage(embedded, { x: 0, y: 0, width: p2.getWidth(), height: p2.getHeight() });
+      }
+
+      const rBytes = await newDoc.save({ useObjectStreams: true });
+      if (rBytes.length < src.length) rasterResult = rBytes;
+    } catch (e) { console.warn("Rasterise pass failed:", e); }
   }
+
+  onProg(98);
+
+  // Return the smallest result across all strategies
+  const candidates = [src, structBytes, imageResult];
+  if (rasterResult) candidates.push(rasterResult);
+  candidates.sort((a, b) => a.length - b.length);
+  const best = candidates[0];
+
+  onProg(100);
+  return { bytes: best, imagesFound, imagesCompressed, usedRasterise: rasterResult !== null && rasterResult === best };
 }
 
-interface CResult { bytes: Uint8Array; url: string; name: string; original: number; imagesFound: number; imagesCompressed: number; }
+interface CResult { bytes: Uint8Array; url: string; name: string; original: number; imagesFound: number; imagesCompressed: number; usedRasterise: boolean; }
 
 export function CompressTool({ toast }: { toast: (msg: string, type?: any) => void }) {
   const [file, setFile]       = useState<File | null>(null);
@@ -428,10 +541,10 @@ export function CompressTool({ toast }: { toast: (msg: string, type?: any) => vo
     if (!file || busy) return;
     setBusy(true); setProg(2); setResult(null);
     try {
-      const { bytes, imagesFound, imagesCompressed } = await runCompress(file, level, setProg);
-      const url = URL.createObjectURL(new Blob([bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)], { type: "application/pdf" }));
+      const { bytes, imagesFound, imagesCompressed, usedRasterise } = await runCompress(file, level, setProg);
+      const url = URL.createObjectURL(toBlob(bytes));
       setTimeout(() => URL.revokeObjectURL(url), 5 * 60 * 1000);
-      setResult({ bytes, url, name: `compressed_${file.name}`, original: file.size, imagesFound, imagesCompressed });
+      setResult({ bytes, url, name: `compressed_${file.name}`, original: file.size, imagesFound, imagesCompressed, usedRasterise });
       const pct = (((file.size - bytes.length) / file.size) * 100).toFixed(1);
       toast(parseFloat(pct) > 0 ? `✅ ${pct}% smaller` : "ℹ️ Already fully optimised", parseFloat(pct) > 0 ? "success" : "info");
     } catch (e) { console.error(e); toast("Compression failed", "error"); }
@@ -475,7 +588,7 @@ export function CompressTool({ toast }: { toast: (msg: string, type?: any) => vo
             ℹ️ Re-encodes embedded JPEG images at {Math.round(cfg.q*100)}% quality + strips metadata/XMP. Output is <strong>always ≤ original size</strong>.
           </div>
 
-          {busy && <ProgressBar value={progress} color={COMPRESS_COLOR} label={progress < 78 ? "Scanning & recompressing images…" : progress < 88 ? "Rebuilding PDF…" : "Finalising…"} />}
+          {busy && <ProgressBar value={progress} color={COMPRESS_COLOR} label={progress < 15 ? "Structural cleanup…" : progress < 72 ? "Recompressing embedded images…" : progress < 82 ? "Rebuilding PDF…" : progress < 98 ? "Page rasterisation pass…" : "Finalising…"} />}
 
           {result && (
             <div style={{ padding:"clamp(1rem,2vw,1.5rem)", borderRadius:18, background:`${COMPRESS_COLOR}08`, border:`1px solid ${COMPRESS_COLOR}25` }}>
@@ -505,7 +618,7 @@ export function CompressTool({ toast }: { toast: (msg: string, type?: any) => vo
                     {savedPct>=40 ? "🎉 Excellent!" : savedPct>=15 ? "✅ Good compression" : savedPct>0 ? "✅ Slightly smaller" : "ℹ️ Already optimal"}
                   </p>
                   <p style={{ fontSize:11, color:"var(--text3)", fontFamily:"var(--font-mono)", marginTop:2 }}>
-                    {result.imagesFound} image streams · {result.imagesCompressed} recompressed · {((result.original - result.bytes.length)/1024).toFixed(0)} KB saved
+                    {result.usedRasterise ? "Page rasterisation used · " : ""}{result.imagesFound} image streams · {result.imagesCompressed} recompressed · {((result.original - result.bytes.length)/1024).toFixed(0)} KB saved
                   </p>
                 </div>
               </div>

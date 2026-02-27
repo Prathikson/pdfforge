@@ -123,7 +123,7 @@ export function SupportSection({ toast }: { toast: (msg: string, type?: any) => 
                 key={d.a}
                 onClick={() => {
                   toast(`Thank you for your $${d.a} support! 🙏`, "success");
-                  window.open("https://buymeacoffee.com", "_blank");
+                  window.open("https://buymeacoffee.com/prathikzoro", "_blank");
                 }}
                 className="px-5 py-2.5 rounded-xl border text-md font-bold transition-all duration-150 hover:-translate-y-0.5"
                 style={{
@@ -140,7 +140,7 @@ export function SupportSection({ toast }: { toast: (msg: string, type?: any) => 
           </div>
 
           <a
-            href="https://buymeacoffee.com"
+            href="https://buymeacoffee.com/prathikzoro"
             target="_blank"
             className="inline-flex items-center gap-2.5 px-8 py-3.5 rounded-2xl text-white text-md font-bold no-underline transition-all duration-200 hover:-translate-y-0.5"
             style={{
